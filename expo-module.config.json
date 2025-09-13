@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["ExpoFocusMenuModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.focusmenu.ExpoFocusMenuModule"]
+  }
+}

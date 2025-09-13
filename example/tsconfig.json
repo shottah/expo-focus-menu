@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "expo-focus-menu": ["../src/index"],
+      "expo-focus-menu/*": ["../src/*"]
+    }
+  }
+}
