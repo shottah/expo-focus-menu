@@ -1,7 +1,7 @@
 {
   "name": "expo-focus-menu",
   "version": "0.1.0",
-  "description": "My new module",
+  "description": "Native iOS context menus with haptic feedback, SF Symbols, and interactive emoji reactions for React Native. Provides an elegant focus menu UI component for Expo and React Native apps.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "scripts": {
@@ -9,25 +9,54 @@
     "clean": "expo-module clean",
     "lint": "expo-module lint",
     "test": "expo-module test",
+    "test:ios": "cd ios && xcodebuild test -scheme ExpoFocusMenu -destination 'platform=iOS Simulator,name=iPhone 15'",
     "prepare": "expo-module prepare",
-    "prepublishOnly": "expo-module prepublishOnly",
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
     "expo-module": "expo-module",
     "open:ios": "xed example/ios",
-    "open:android": "open -a \"Android Studio\" example/android"
+    "open:android": "open -a \"Android Studio\" example/android",
+    "release": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish"
   },
   "keywords": [
     "react-native",
     "expo",
     "expo-focus-menu",
+    "context-menu",
+    "ios",
+    "menu",
+    "haptic-feedback",
+    "emoji-reactions",
+    "native-menu",
+    "uicontextmenu",
+    "sf-symbols",
     "ExpoFocusMenu"
   ],
-  "repository": "https://github.com/shottah/expo-focus-menu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shottah/expo-focus-menu.git"
+  },
   "bugs": {
     "url": "https://github.com/shottah/expo-focus-menu/issues"
   },
   "author": "shottah <14793093+shottah@users.noreply.github.com> (https://github.com/shottah)",
   "license": "MIT",
   "homepage": "https://github.com/shottah/expo-focus-menu#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "build",
+    "src",
+    "ios",
+    "android",
+    "expo-module.config.json",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "devDependencies": {
     "@babel/preset-env": "^7.28.3",
     "@babel/preset-react": "^7.27.1",
