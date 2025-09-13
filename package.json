@@ -28,11 +28,15 @@
   "author": "shottah <14793093+shottah@users.noreply.github.com> (https://github.com/shottah)",
   "license": "MIT",
   "homepage": "https://github.com/shottah/expo-focus-menu#readme",
-  "dependencies": {},
   "devDependencies": {
+    "@babel/preset-env": "^7.28.3",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
+    "@testing-library/react-native": "^13.3.3",
     "@types/react": "~19.1.0",
-    "expo-module-scripts": "^5.0.7",
+    "babel-jest": "^29.7.0",
     "expo": "^54.0.2",
+    "expo-module-scripts": "^5.0.7",
     "react-native": "0.81.4"
   },
   "peerDependencies": {
