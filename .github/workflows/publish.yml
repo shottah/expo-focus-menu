@@ -102,9 +102,21 @@ jobs:
       - name: Build package
         run: npm run build
 
-      - name: Publish to GitHub Packages
+      - name: Configure package for GitHub Packages
         run: |
-          npm config set @${{ github.repository_owner }}:registry https://npm.pkg.github.com
-          npm publish
+          # Create a modified package.json with scoped name for GitHub Packages
+          node -e "
+          const pkg = require('./package.json');
+          pkg.name = '@${{ github.repository_owner }}/' + pkg.name;
+          pkg.publishConfig = {
+            registry: 'https://npm.pkg.github.com'
+          };
+          require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+          echo "Package name updated for GitHub Packages"
+          cat package.json | head -5
+
+      - name: Publish to GitHub Packages
+        run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
