@@ -34,7 +34,7 @@ runs:
           ${{ steps.npm-cache-dir.outputs.dir }}
           ${{ inputs.working-directory }}/node_modules
           ~/.npm
-        key: ${{ runner.os }}-node-${{ inputs.node-version }}-npm-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory)) }}
+        key: ${{ runner.os }}-node-${{ inputs.node-version }}-npm-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-${{ inputs.node-version }}-npm-
           ${{ runner.os }}-node-${{ inputs.node-version }}-
@@ -46,7 +46,7 @@ runs:
         path: |
           ${{ inputs.working-directory }}/build
           ${{ inputs.working-directory }}/.expo
-        key: ${{ runner.os }}-build-${{ hashFiles(format('{0}/src/**/*.{ts,tsx,js,jsx}', inputs.working-directory)) }}
+        key: ${{ runner.os }}-build-${{ hashFiles('**/src/**/*.ts', '**/src/**/*.tsx', '**/src/**/*.js', '**/src/**/*.jsx') }}
         restore-keys: |
           ${{ runner.os }}-build-
 
