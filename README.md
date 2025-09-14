@@ -157,7 +157,9 @@ interface FocusMenuItem {
 }
 ```
 
-## Platform Support
+## Compatibility
+
+### Platform Support
 
 | Platform | Status | Notes |
 |----------|--------|-------|
@@ -166,6 +168,30 @@ interface FocusMenuItem {
 | iOS 15+ | ✅ Enhanced | Subtitles support |
 | Android | ⚠️ Fallback | Displays children without menu |
 | Web | ⚠️ Fallback | Displays children without menu |
+
+### Version Compatibility
+
+| expo-focus-menu | Expo SDK | React Native | iOS | Android | Node |
+|-----------------|----------|--------------|-----|---------|------|
+| 0.1.x | 54+ | 0.81+ | 15.0+ | API 24+ (SDK 36) | 20.0+ |
+
+### Dependency Requirements
+
+| Dependency | Version | Required |
+|------------|---------|----------|
+| expo | * | Yes (peer) |
+| react | * | Yes (peer) |
+| react-native | * | Yes (peer) |
+| ExpoModulesCore | Auto-linked | Yes (iOS) |
+
+### Build Configuration
+
+| Configuration | iOS | Android |
+|---------------|-----|---------|
+| Swift Version | 5.9 | - |
+| Compile SDK | - | 36 |
+| Min SDK | iOS 15.0, tvOS 15.0 | API 24 |
+| Target SDK | - | 36 |
 
 ## Examples
 
