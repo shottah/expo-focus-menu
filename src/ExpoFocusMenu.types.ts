@@ -26,7 +26,11 @@ export interface FocusMenuItem {
   /** Whether this item should be disabled */
   disabled?: boolean;
 
-  /** Nested menu items for creating submenus */
+  /**
+   * Nested menu items for creating submenus.
+   * Note: Only one level of nesting is supported (parent -> child).
+   * Children cannot have their own children - any deeper nesting will be ignored.
+   */
   children?: FocusMenuItem[];
 }
 
@@ -34,12 +38,6 @@ export interface FocusMenuItem {
  * Configuration options for the focus menu behavior
  */
 export interface ExpoFocusMenuConfig {
-  /** How the menu should be triggered */
-  triggerMode?: 'longPress' | 'tap';
-
-  /** Whether to show a preview of the content when menu appears (iOS only) */
-  showPreview?: boolean;
-
   /** Whether to provide haptic feedback when menu appears */
   hapticFeedback?: boolean;
 }
@@ -60,10 +58,7 @@ export interface ExpoFocusMenuViewProps extends ExpoFocusMenuConfig {
   /** Callback when the menu is dismissed */
   onMenuDismiss?: () => void;
 
-  /** Whether to show emoji reactions picker */
-  showReactions?: boolean;
-
-  /** Custom emoji reactions to show (defaults to common emojis if not provided) */
+  /** Emoji reactions to show (no reactions if not provided) */
   reactions?: string[];
 
   /** Callback when an emoji reaction is selected */

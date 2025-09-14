@@ -25,7 +25,6 @@ import expo.modules.kotlin.views.ExpoView
 class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
     companion object {
         private const val TAG = "ExpoFocusMenuView"
-        private val DEFAULT_EMOJIS = listOf("😀", "😂", "❤️", "👍", "🔥", "💯", "😍", "🎉", "👏", "✨")
     }
 
     // Event dispatchers
@@ -37,12 +36,10 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
     // Properties from JS
     var menuItems: List<Map<String, Any>> = emptyList()
     var triggerMode: String = "longPress"
-    var showPreview: Boolean = false
     var hapticFeedback: Boolean = false
-    var showReactions: Boolean = false
-    var reactions: List<String> = DEFAULT_EMOJIS
+    var reactions: List<String> = emptyList()
         set(value) {
-            field = value.ifEmpty { DEFAULT_EMOJIS }
+            field = value
             // Log.d(TAG, "Reactions updated: ${field.size} items")
             emojiPickerAdapter?.updateEmojis(field)
         }
@@ -75,7 +72,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
                 setOnClickListener {
                     if (hapticFeedback) provideHapticFeedback()
                     showContextMenu()
-                    if (showReactions) showEmojiPicker()
+                    if (reactions.isNotEmpty()) showEmojiPicker()
                 }
                 setOnLongClickListener(null)
             }
@@ -84,7 +81,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
                 setOnLongClickListener {
                     if (hapticFeedback) provideHapticFeedback()
                     showContextMenu()
-                    if (showReactions) showEmojiPicker()
+                    if (reactions.isNotEmpty()) showEmojiPicker()
                     true
                 }
             }

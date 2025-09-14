@@ -39,20 +39,10 @@ public class ExpoFocusMenuModule: Module {
         view.menuItems = items
       }
 
-      Prop("triggerMode") { (view: ExpoFocusMenuView, mode: String) in
-        view.updateTriggerMode(mode)
-      }
-
-      Prop("showPreview") { (view: ExpoFocusMenuView, show: Bool) in
-        view.showPreview = show
-      }
+      // Removed triggerMode prop - always use long press
 
       Prop("hapticFeedback") { (view: ExpoFocusMenuView, enabled: Bool) in
         view.hapticFeedback = enabled
-      }
-
-      Prop("showReactions") { (view: ExpoFocusMenuView, show: Bool) in
-        view.showReactions = show
       }
 
       Prop("reactions") { (view: ExpoFocusMenuView, emojis: [String]?) in
@@ -109,7 +99,6 @@ public class ExpoFocusMenuModule: Module {
         }
 
         // Configure the menu based on config
-        let showPreview = config["showPreview"] as? Bool ?? false
         let hapticFeedback = config["hapticFeedback"] as? Bool ?? false
 
         if hapticFeedback {
@@ -270,20 +259,13 @@ public class ExpoFocusMenuModule: Module {
 @available(iOS 14.0, *)
 private class MenuDelegate: NSObject, UIContextMenuInteractionDelegate {
   let menu: UIMenu?
-  let showPreview: Bool
 
-  init(menu: UIMenu?, showPreview: Bool) {
+  init(menu: UIMenu?) {
     self.menu = menu
-    self.showPreview = showPreview
   }
 
   func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
-    return UIContextMenuConfiguration(identifier: nil, previewProvider: showPreview ? {
-      // Return a preview view controller if showPreview is enabled
-      let previewController = UIViewController()
-      previewController.view.backgroundColor = .systemBackground
-      return previewController
-    } : nil) { _ in
+    return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
       return self.menu
     }
   }

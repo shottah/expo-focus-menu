@@ -8,7 +8,7 @@ import { FocusMenuItem } from '../ExpoFocusMenu.types';
 const MAX_MENU_ITEMS = 50;
 const MAX_EMOJI_REACTIONS = 20;
 const MAX_STRING_LENGTH = 200;
-const MAX_NESTING_DEPTH = 3;
+const MAX_NESTING_DEPTH = 1; // Maximum depth for nested menu items (parent -> child only)
 
 /**
  * Validates and sanitizes menu items with security checks
@@ -82,6 +82,7 @@ function validateMenuItem(item: unknown, depth: number): FocusMenuItem | null {
   }
 
   // Handle nested items with depth limit
+  // Depth 0: root level, Depth 1: first level children (max)
   if (Array.isArray(menuItem.children) && depth < MAX_NESTING_DEPTH) {
     const children = menuItem.children
       .slice(0, 10) // Limit children per item
@@ -92,7 +93,7 @@ function validateMenuItem(item: unknown, depth: number): FocusMenuItem | null {
       sanitized.children = children;
     }
   } else if (depth >= MAX_NESTING_DEPTH && Array.isArray(menuItem.children)) {
-    console.warn('[ExpoFocusMenu] Maximum nesting depth reached, ignoring children');
+    console.warn(`[ExpoFocusMenu] Maximum nesting depth (${MAX_NESTING_DEPTH} level) reached. Menu items can only have one level of children.`);
   }
 
   return sanitized;
@@ -153,10 +154,5 @@ function sanitizeEmoji(emoji: string): string {
   return hasEmojiLike || sanitized.length <= 4 ? sanitized : '';
 }
 
-/**
- * Validates trigger mode
- */
-export function validateTriggerMode(mode: unknown): 'longPress' | 'tap' {
-  return mode === 'tap' ? 'tap' : 'longPress';
-}
+// Removed validateTriggerMode - always use long press
 

@@ -5,10 +5,8 @@ import UIKit
 class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
   // Properties from JS
   var menuItems: [[String: Any]] = []
-  var triggerMode: String = "longPress"
-  var showPreview: Bool = false
+  // Removed triggerMode - always use long press
   var hapticFeedback: Bool = false
-  var showReactions: Bool = false
   // Store reactions with proper UTF-8 handling
   private var _reactions: [String] = []
   var reactions: [String] {
@@ -27,7 +25,7 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
 
       // Update emoji picker if it exists
       if let picker = emojiPickerView {
-        picker.emojis = _reactions.isEmpty ? EmojiPickerView.defaultEmojis : _reactions
+        picker.emojis = _reactions
         picker.reloadData()
       }
     }
@@ -64,47 +62,24 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
     if #available(iOS 13.0, *) {
       contextMenuInteraction = UIContextMenuInteraction(delegate: self)
       addInteraction(contextMenuInteraction!)
-
-      // Add tap gesture if needed
-      if triggerMode == "tap" {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        addGestureRecognizer(tapGesture)
-      }
+      // Only long press triggers the menu - no tap gesture
     }
   }
 
-  @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
-    if triggerMode == "tap" {
-      // Trigger haptic feedback if enabled
-      if hapticFeedback {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.prepare()
-        generator.impactOccurred()
-      }
-
-      // For tap mode, we trigger a long press programmatically
-      // This is a safer approach than using private APIs
-      let longPress = UILongPressGestureRecognizer()
-      longPress.minimumPressDuration = 0
-      self.addGestureRecognizer(longPress)
-      longPress.state = .began
-      longPress.state = .ended
-      self.removeGestureRecognizer(longPress)
-    }
-  }
+  // Removed handleTap - only long press triggers the menu
 
   // MARK: - UIContextMenuInteractionDelegate
 
   @available(iOS 13.0, *)
   func contextMenuInteraction(_ interaction: UIContextMenuInteraction, configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
     // Trigger haptic feedback if enabled
-    if hapticFeedback && triggerMode == "longPress" {
+    if hapticFeedback {
       let generator = UIImpactFeedbackGenerator(style: .light)
       generator.prepare()
       generator.impactOccurred()
     }
 
-    return UIContextMenuConfiguration(identifier: nil, previewProvider: showPreview ? { [weak self] in self?.makePreviewProvider() } : nil) { [weak self] _ in
+    return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
       return self?.createMenu()
     }
   }
@@ -182,8 +157,8 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
       }
     }
 
-    // Show emoji picker if enabled
-    if showReactions {
+    // Show emoji picker if reactions are provided
+    if !_reactions.isEmpty {
       // Adjusted delay for better timing
       let delay: TimeInterval = 0.25
 
@@ -341,32 +316,13 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
     return UIMenu(title: "", children: menuElements)
   }
 
-  @available(iOS 13.0, *)
-  private func makePreviewProvider() -> UIViewController? {
-    // Return nil for now - could be customized to show a preview
-    return nil
-  }
 
-  // Update trigger mode when prop changes
-  func updateTriggerMode(_ newMode: String) {
-    if triggerMode != newMode {
-      triggerMode = newMode
-
-      // Remove all gesture recognizers
-      gestureRecognizers?.forEach { removeGestureRecognizer($0) }
-
-      // Re-setup based on new mode
-      if triggerMode == "tap" {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        addGestureRecognizer(tapGesture)
-      }
-    }
-  }
+  // Removed updateTriggerMode - always use long press
 
   // MARK: - Emoji Picker
 
   private func showEmojiPicker() {
-    // NSLog("🎯🎯🎯 showEmojiPicker called, showReactions=%@", showReactions ? "YES" : "NO")
+    // NSLog("🎯🎯🎯 showEmojiPicker called, reactions count=%d", _reactions.count)
     guard emojiPickerView == nil else {
     // NSLog("🎯🎯🎯 EmojiPicker already showing, returning")
       return
@@ -456,12 +412,15 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
     //      emojiPickerShouldGoBelow ? "BELOW" : "ABOVE")
     }
 
-    // Create emoji picker with properly encoded emojis
-    // Use default emojis if reactions array is empty
-    let emojisToShow = _reactions.isEmpty ? EmojiPickerView.defaultEmojis : _reactions
-    // NSLog("🎯🎯🎯 Creating EmojiPickerView with %d reactions: %@", emojisToShow.count, emojisToShow.description)
-    print("🎯🎯🎯 Creating EmojiPickerView with reactions: \(emojisToShow)")
-    let emojiPicker = EmojiPickerView(frame: .zero, emojis: emojisToShow)
+    // Create emoji picker with provided emojis only
+    guard !_reactions.isEmpty else {
+      // NSLog("🎯🎯🎯 No reactions provided, not showing emoji picker")
+      return
+    }
+
+    // NSLog("🎯🎯🎯 Creating EmojiPickerView with %d reactions: %@", _reactions.count, _reactions.description)
+    print("🎯🎯🎯 Creating EmojiPickerView with reactions: \(_reactions)")
+    let emojiPicker = EmojiPickerView(frame: .zero, emojis: _reactions)
     emojiPicker.translatesAutoresizingMaskIntoConstraints = false
     emojiPicker.selectedEmoji = selectedEmoji // Restore previous selection
 

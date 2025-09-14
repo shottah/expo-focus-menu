@@ -8,7 +8,7 @@ import {
 import { requireNativeViewManager } from 'expo-modules-core';
 
 import { ExpoFocusMenuViewProps } from './ExpoFocusMenu.types';
-import { validateMenuItems, validateReactions, validateTriggerMode } from './utils/validation';
+import { validateMenuItems, validateReactions } from './utils/validation';
 
 // Import the native view component
 const NativeView = requireNativeViewManager<ExpoFocusMenuViewProps & {
@@ -17,20 +17,17 @@ const NativeView = requireNativeViewManager<ExpoFocusMenuViewProps & {
 
 /**
  * A React Native component that wraps its children with a context menu
- * triggered by long press or tap.
+ * triggered by long press.
  */
 export default function ExpoFocusMenuView({
   items,
   onItemPress,
   onMenuShow,
   onMenuDismiss,
-  showReactions = false,
   reactions,
   onReactionPress,
   children,
   style,
-  triggerMode = 'longPress',
-  showPreview = false,
   hapticFeedback = false,
   testID,
   accessibilityLabel,
@@ -41,8 +38,6 @@ export default function ExpoFocusMenuView({
   const validatedItems = React.useMemo(() => validateMenuItems(items), [items]);
   const validatedReactions = React.useMemo(() =>
     reactions ? validateReactions(reactions) : undefined, [reactions]);
-  const validatedTriggerMode = React.useMemo(() =>
-    validateTriggerMode(triggerMode), [triggerMode]);
   // Handle menu item press events from native
   const handleItemPress = React.useCallback((event: any) => {
     if (onItemPress && event.nativeEvent?.itemId) {
@@ -77,10 +72,7 @@ export default function ExpoFocusMenuView({
       <NativeView
         style={style}
         items={validatedItems}
-        triggerMode={validatedTriggerMode}
-        showPreview={showPreview}
         hapticFeedback={hapticFeedback}
-        showReactions={showReactions}
         reactions={validatedReactions}
         onItemPress={handleItemPress}
         onMenuShow={handleMenuShow}
@@ -88,7 +80,7 @@ export default function ExpoFocusMenuView({
         onReactionPress={handleReactionPress}
         testID={testID}
         accessibilityLabel={accessibilityLabel}
-        accessibilityHint={accessibilityHint || (validatedTriggerMode === 'longPress' ? 'Long press to show menu options' : 'Tap to show menu options')}
+        accessibilityHint={accessibilityHint || 'Long press to show menu options'}
         accessible={accessible}
       >
         {children}

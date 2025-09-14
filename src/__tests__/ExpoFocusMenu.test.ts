@@ -59,14 +59,6 @@ describe('ExpoFocusMenu Types', () => {
       expect(config2.triggerMode).toBe('tap');
     });
 
-    it('should support iOS-specific options', () => {
-      const config: ExpoFocusMenuConfig = {
-        showPreview: true,
-      };
-
-      expect(config.showPreview).toBe(true);
-    });
-
     it('should support haptic feedback option', () => {
       const config: ExpoFocusMenuConfig = {
         hapticFeedback: true,

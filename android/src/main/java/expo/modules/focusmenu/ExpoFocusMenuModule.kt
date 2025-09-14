@@ -58,16 +58,8 @@ class ExpoFocusMenuModule : Module() {
         view.updateTriggerMode()
       }
 
-      Prop("showPreview") { view, show: Boolean ->
-        view.showPreview = show
-      }
-
       Prop("hapticFeedback") { view, enabled: Boolean ->
         view.hapticFeedback = enabled
-      }
-
-      Prop("showReactions") { view, show: Boolean ->
-        view.showReactions = show
       }
 
       Prop("reactions") { view, emojis: List<String>? ->

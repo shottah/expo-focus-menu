@@ -14,7 +14,6 @@ export default function ExpoFocusMenuView({
   onMenuDismiss,
   children,
   style,
-  triggerMode = 'longPress',
   hapticFeedback,
   testID,
   accessibilityLabel,
@@ -32,7 +31,6 @@ export default function ExpoFocusMenuView({
       }
 
       await ExpoFocusMenuModule.showMenu(items, onItemPress, {
-        triggerMode,
         hapticFeedback,
       });
 
@@ -42,36 +40,24 @@ export default function ExpoFocusMenuView({
     } catch (error) {
       console.error('Failed to show menu:', error);
     }
-  }, [items, onItemPress, onMenuShow, onMenuDismiss, triggerMode, hapticFeedback]);
+  }, [items, onItemPress, onMenuShow, onMenuDismiss, hapticFeedback]);
 
   const handleContextMenu = React.useCallback(
     (e: React.MouseEvent) => {
-      if (triggerMode === 'longPress') {
-        e.preventDefault();
-        showMenu();
-      }
+      // Always use context menu (right-click) on web
+      e.preventDefault();
+      showMenu();
     },
-    [triggerMode, showMenu],
-  );
-
-  const handleClick = React.useCallback(
-    (e: React.MouseEvent) => {
-      if (triggerMode === 'tap') {
-        e.preventDefault();
-        showMenu();
-      }
-    },
-    [triggerMode, showMenu],
+    [showMenu],
   );
 
   return (
     <div
       style={style as React.CSSProperties}
       onContextMenu={handleContextMenu}
-      onClick={handleClick}
       data-testid={testID}
       aria-label={accessibilityLabel}
-      title={accessibilityHint}
+      title={accessibilityHint || 'Right-click to show menu options'}
       role={accessible ? 'button' : undefined}
     >
       {children}

@@ -76,7 +76,6 @@ function MyComponent() {
 ```tsx
 <ExpoFocusMenuView
   items={menuItems}
-  showReactions={true}
   reactions={['👍', '❤️', '😂', '🔥', '💯']}
   onReactionPress={({ emoji, selected }) => {
     console.log(`Emoji ${emoji} was ${selected ? 'selected' : 'deselected'}`);
@@ -113,8 +112,6 @@ const menuItems = [
 ```tsx
 <ExpoFocusMenuView
   items={menuItems}
-  triggerMode="tap"           // 'tap' or 'longPress' (default)
-  showPreview={true}           // Show content preview on menu
   hapticFeedback={true}        // Enable haptic feedback
   onItemPress={handleItemPress}
   onMenuShow={() => console.log('Menu opened')}
@@ -133,11 +130,8 @@ const menuItems = [
 | `items` | `FocusMenuItem[]` | Array of menu items to display | Required |
 | `onItemPress` | `(itemId: string) => void` | Callback when menu item is selected | Required |
 | `children` | `ReactNode` | Content to wrap with menu | Required |
-| `triggerMode` | `'longPress' \| 'tap'` | How to trigger the menu | `'longPress'` |
-| `showPreview` | `boolean` | Show content preview in menu (iOS 13+) | `false` |
 | `hapticFeedback` | `boolean` | Enable haptic feedback | `false` |
-| `showReactions` | `boolean` | Show emoji reaction picker | `false` |
-| `reactions` | `string[]` | Custom emoji reactions | Default set |
+| `reactions` | `string[]` | Emoji reactions to display (none if omitted) | - |
 | `onReactionPress` | `(data: {emoji: string, selected: boolean}) => void` | Reaction selection callback | - |
 | `onMenuShow` | `() => void` | Menu shown callback | - |
 | `onMenuDismiss` | `() => void` | Menu dismissed callback | - |

@@ -48,12 +48,6 @@ function filterConfigForPlatform(config?: ExpoFocusMenuConfig): ExpoFocusMenuCon
     return undefined;
   }
 
-  if (Platform.OS === 'android') {
-    // Remove iOS-only properties on Android
-    const { showPreview: _showPreview, ...androidConfig } = config;
-    return androidConfig;
-  }
-
   return config;
 }
 

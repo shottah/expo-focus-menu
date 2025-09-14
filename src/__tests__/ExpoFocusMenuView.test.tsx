@@ -30,8 +30,6 @@ describe('ExpoFocusMenuView Props', () => {
         onMenuDismiss: jest.fn(),
         children: null,
         style: { backgroundColor: 'red' },
-        triggerMode: 'tap',
-        showPreview: true,
         hapticFeedback: true,
         testID: 'test-menu',
         accessibilityLabel: 'Context Menu',
@@ -39,8 +37,6 @@ describe('ExpoFocusMenuView Props', () => {
         accessible: true,
       };
 
-      expect(props.triggerMode).toBe('tap');
-      expect(props.showPreview).toBe(true);
       expect(props.hapticFeedback).toBe(true);
       expect(props.testID).toBe('test-menu');
       expect(props.accessibilityLabel).toBe('Context Menu');
@@ -54,8 +50,6 @@ describe('ExpoFocusMenuView Props', () => {
       };
 
       // These should be undefined when not provided
-      expect(minimalProps.triggerMode).toBeUndefined();
-      expect(minimalProps.showPreview).toBeUndefined();
       expect(minimalProps.hapticFeedback).toBeUndefined();
       expect(minimalProps.onMenuShow).toBeUndefined();
       expect(minimalProps.onMenuDismiss).toBeUndefined();
