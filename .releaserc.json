@@ -1,19 +1,77 @@
 {
-  "branches": ["main"],
+  "branches": [
+    "main",
+    {
+      "name": "development",
+      "prerelease": "dev"
+    }
+  ],
   "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
-    "@semantic-release/changelog",
-    "@semantic-release/npm",
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          { "type": "feat", "release": "minor" },
+          { "type": "fix", "release": "patch" },
+          { "type": "perf", "release": "patch" },
+          { "type": "revert", "release": "patch" },
+          { "type": "docs", "scope": "README", "release": "patch" },
+          { "type": "style", "release": false },
+          { "type": "chore", "release": false },
+          { "type": "refactor", "release": "patch" },
+          { "type": "test", "release": false },
+          { "type": "build", "release": false },
+          { "type": "ci", "release": false },
+          { "breaking": true, "release": "major" },
+          { "revert": true, "release": "patch" }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "✨ Features", "hidden": false },
+            { "type": "fix", "section": "🐛 Bug Fixes", "hidden": false },
+            { "type": "perf", "section": "⚡ Performance", "hidden": false },
+            { "type": "revert", "section": "⏪ Reverts", "hidden": false },
+            { "type": "docs", "section": "📚 Documentation", "hidden": false },
+            { "type": "style", "section": "💄 Styles", "hidden": true },
+            { "type": "chore", "section": "🔧 Maintenance", "hidden": true },
+            { "type": "refactor", "section": "♻️ Code Refactoring", "hidden": false },
+            { "type": "test", "section": "✅ Tests", "hidden": true },
+            { "type": "build", "section": "📦 Build System", "hidden": true },
+            { "type": "ci", "section": "👷 CI/CD", "hidden": true }
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": true
+      }
+    ],
     [
       "@semantic-release/github",
       {
         "assets": [
           {
             "path": "expo-focus-menu-*.tgz",
-            "label": "NPM Package"
+            "label": "NPM Package (tar.gz)"
           }
-        ]
+        ],
+        "successComment": "🎉 This PR is included in version ${nextRelease.version}",
+        "failComment": false
       }
     ],
     [
