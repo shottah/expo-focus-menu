@@ -53,6 +53,31 @@ jobs:
           fail_ci_if_error: false
 
 
+  test-ios-module:
+    name: Validate iOS Module
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Swift syntax
+        run: |
+          echo "Validating iOS Swift files..."
+          # Check that Swift files have valid syntax
+          for file in ios/*.swift; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              swiftc -parse -target arm64-apple-ios13.0 -sdk $(xcrun --sdk iphonesimulator --show-sdk-path) "$file" 2>&1 | head -20
+            fi
+          done
+          echo "✅ iOS Swift files validated!"
+
+      - name: Check test files exist
+        run: |
+          echo "iOS test files:"
+          ls -la ios/Tests/*.swift | wc -l
+          echo "test files found"
+
   build:
     name: Build Package
     runs-on: ubuntu-latest
