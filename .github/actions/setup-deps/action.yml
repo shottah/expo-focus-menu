@@ -1,0 +1,71 @@
+name: 'Setup Dependencies'
+description: 'Setup Node.js and install dependencies with caching'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '20'
+  working-directory:
+    description: 'Working directory for npm commands'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.working-directory }}/package-lock.json
+
+    - name: Get npm cache directory
+      id: npm-cache-dir
+      shell: bash
+      run: echo "dir=$(npm config get cache)" >> ${GITHUB_OUTPUT}
+
+    - name: Cache npm dependencies
+      uses: actions/cache@v4
+      id: npm-cache
+      with:
+        path: |
+          ${{ steps.npm-cache-dir.outputs.dir }}
+          ${{ inputs.working-directory }}/node_modules
+          ~/.npm
+        key: ${{ runner.os }}-node-${{ inputs.node-version }}-npm-${{ hashFiles(format('{0}/package-lock.json', inputs.working-directory)) }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ inputs.node-version }}-npm-
+          ${{ runner.os }}-node-${{ inputs.node-version }}-
+          ${{ runner.os }}-node-
+
+    - name: Cache build outputs
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ inputs.working-directory }}/build
+          ${{ inputs.working-directory }}/.expo
+        key: ${{ runner.os }}-build-${{ hashFiles(format('{0}/src/**/*.{ts,tsx,js,jsx}', inputs.working-directory)) }}
+        restore-keys: |
+          ${{ runner.os }}-build-
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ -f "package-lock.json" ]; then
+          echo "Installing with npm ci..."
+          npm ci --prefer-offline --no-audit --progress=false
+        else
+          echo "No package-lock.json found, using npm install..."
+          npm install --prefer-offline --no-audit --progress=false
+        fi
+
+    - name: Verify installation
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        echo "Node version: $(node --version)"
+        echo "npm version: $(npm --version)"
+        echo "Dependencies installed successfully"

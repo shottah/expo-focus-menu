@@ -14,33 +14,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Setup and install dependencies
+        uses: ./.github/actions/setup-deps
 
       - name: Run ESLint
         run: npm run lint
 
   test-js:
-    name: Test JavaScript/TypeScript
+    name: Test JavaScript/TypeScript (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup and install dependencies
+        uses: ./.github/actions/setup-deps
         with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
+          node-version: ${{ matrix.node-version }}
 
       - name: Run tests
         run: npm test
@@ -86,17 +79,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
+      - name: Setup and install dependencies
+        uses: ./.github/actions/setup-deps
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Cache build artifacts
+        uses: ./.github/actions/cache-build
+        id: build-cache
 
       - name: Build package
+        if: steps.build-cache.outputs.cache-hit != 'true'
         run: npm run build
+
+      - name: Verify build exists
+        run: |
+          if [ ! -d "build" ]; then
+            echo "Build failed - running build again"
+            npm run build
+          fi
 
       - name: Check build output
         run: |

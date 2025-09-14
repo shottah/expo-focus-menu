@@ -1,0 +1,48 @@
+name: 'Cache Build Artifacts'
+description: 'Cache build outputs and intermediate files'
+
+inputs:
+  cache-key-prefix:
+    description: 'Prefix for cache key'
+    required: false
+    default: 'build'
+
+outputs:
+  cache-hit:
+    description: 'Whether cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get cache paths
+      id: cache-paths
+      shell: bash
+      run: |
+        echo "week=$(date +%Y-%U)" >> ${GITHUB_OUTPUT}
+        echo "hash=${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'ios/**/*.swift', 'android/**/*.java', 'android/**/*.kt') }}" >> ${GITHUB_OUTPUT}
+
+    - name: Cache build artifacts
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          build
+          .expo
+          ios/build
+          android/build
+          ~/.gradle/caches
+          ~/Library/Caches/CocoaPods
+        key: ${{ runner.os }}-${{ inputs.cache-key-prefix }}-${{ steps.cache-paths.outputs.week }}-${{ steps.cache-paths.outputs.hash }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.cache-key-prefix }}-${{ steps.cache-paths.outputs.week }}-
+          ${{ runner.os }}-${{ inputs.cache-key-prefix }}-
+
+    - name: Log cache status
+      shell: bash
+      run: |
+        if [ "${{ steps.cache.outputs.cache-hit }}" == "true" ]; then
+          echo "✅ Build cache restored"
+        else
+          echo "🔨 No cache found, will create new cache"
+        fi
