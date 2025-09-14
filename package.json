@@ -46,6 +46,14 @@
   "engines": {
     "node": ">=20.0.0"
   },
+  "expo": {
+    "autolinking": {
+      "nativeModulesDir": ".",
+      "ios": {
+        "podspecPath": "ios/ExpoFocusMenu.podspec"
+      }
+    }
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
