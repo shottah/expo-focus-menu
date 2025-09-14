@@ -5,7 +5,7 @@ const ExpoFocusMenuModule = {
   async showMenu(
     items: FocusMenuItem[],
     onItemPress: (itemId: string) => void,
-    config?: ExpoFocusMenuConfig
+    _config?: ExpoFocusMenuConfig,
   ): Promise<void> {
     // For web, we could implement a custom menu or use the browser's context menu API
     // This is a simplified implementation
@@ -13,7 +13,7 @@ const ExpoFocusMenuModule = {
 
     // Create a simple alert-based menu for demonstration
     const menuItems = items.map(item => `${item.id}: ${item.title}`).join('\n');
-    const selected = prompt(`Select an option:\n${menuItems}\n\nEnter the ID:`);
+    const selected = window.prompt(`Select an option:\n${menuItems}\n\nEnter the ID:`);
 
     if (selected && items.find(item => item.id === selected)) {
       onItemPress(selected);
@@ -28,7 +28,7 @@ const ExpoFocusMenuModule = {
     return false;
   },
 
-  async setMenuConfig(config: ExpoFocusMenuConfig): Promise<void> {
+  async setMenuConfig(_config: ExpoFocusMenuConfig): Promise<void> {
     // Store config if needed for web
   },
 };

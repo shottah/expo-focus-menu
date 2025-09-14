@@ -133,7 +133,8 @@ function sanitizeString(str: unknown, maxLength: number): string {
 
   // Remove control characters and limit length
   return str
-    .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001F\u007F]/g, '') // Remove control characters
     .slice(0, maxLength)
     .trim();
 }
@@ -158,3 +159,4 @@ function sanitizeEmoji(emoji: string): string {
 export function validateTriggerMode(mode: unknown): 'longPress' | 'tap' {
   return mode === 'tap' ? 'tap' : 'longPress';
 }
+

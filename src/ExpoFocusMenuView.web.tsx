@@ -51,7 +51,7 @@ export default function ExpoFocusMenuView({
         showMenu();
       }
     },
-    [triggerMode, showMenu]
+    [triggerMode, showMenu],
   );
 
   const handleClick = React.useCallback(
@@ -61,7 +61,7 @@ export default function ExpoFocusMenuView({
         showMenu();
       }
     },
-    [triggerMode, showMenu]
+    [triggerMode, showMenu],
   );
 
   return (

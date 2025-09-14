@@ -44,11 +44,13 @@ function validateMenuItems(items: FocusMenuItem[]): void {
  * Filters out iOS-only configuration for Android
  */
 function filterConfigForPlatform(config?: ExpoFocusMenuConfig): ExpoFocusMenuConfig | undefined {
-  if (!config) return undefined;
+  if (!config) {
+    return undefined;
+  }
 
   if (Platform.OS === 'android') {
     // Remove iOS-only properties on Android
-    const { showPreview, ...androidConfig } = config;
+    const { showPreview: _showPreview, ...androidConfig } = config;
     return androidConfig;
   }
 
@@ -62,7 +64,7 @@ const ExpoFocusMenuModule = {
   async showMenu(
     items: FocusMenuItem[],
     onItemPress: (itemId: string) => void,
-    config?: ExpoFocusMenuConfig
+    config?: ExpoFocusMenuConfig,
   ): Promise<void> {
     // Validate items
     validateMenuItems(items);

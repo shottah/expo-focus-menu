@@ -169,8 +169,12 @@ describe('ExpoFocusMenuView Props', () => {
       };
 
       // Simulate calling the callbacks
-      if (props.onMenuShow) props.onMenuShow();
-      if (props.onMenuDismiss) props.onMenuDismiss();
+      if (props.onMenuShow) {
+        props.onMenuShow();
+      }
+      if (props.onMenuDismiss) {
+        props.onMenuDismiss();
+      }
 
       expect(onMenuShow).toHaveBeenCalled();
       expect(onMenuDismiss).toHaveBeenCalled();
@@ -201,3 +205,4 @@ describe('ExpoFocusMenuView Props', () => {
     });
   });
 });
+

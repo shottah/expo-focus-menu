@@ -1,4 +1,5 @@
 import type { StyleProp, ViewStyle } from 'react-native';
+import type { ReactNode } from 'react';
 
 /**
  * Represents a single item in the focus menu
@@ -69,7 +70,7 @@ export interface ExpoFocusMenuViewProps extends ExpoFocusMenuConfig {
   onReactionPress?: (data: { emoji: string; selected: boolean }) => void;
 
   /** Children to wrap with the menu */
-  children: React.ReactNode;
+  children: ReactNode;
 
   /** Style for the wrapper view */
   style?: StyleProp<ViewStyle>;
