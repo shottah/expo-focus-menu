@@ -43,6 +43,9 @@
   "author": "shottah <14793093+shottah@users.noreply.github.com> (https://github.com/shottah)",
   "license": "MIT",
   "homepage": "https://github.com/shottah/expo-focus-menu#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
