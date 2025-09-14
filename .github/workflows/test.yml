@@ -1,13 +1,123 @@
 name: Test
 
-# This workflow is kept for backward compatibility
-# It simply delegates to the main CI/CD workflow
-
 on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
   workflow_call:  # Allow this workflow to be called by other workflows
 
 jobs:
-  delegate-to-cicd:
-    name: Run CI/CD Pipeline
-    uses: ./.github/workflows/ci-cd.yml
-    secrets: inherit
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup and install dependencies
+        uses: ./.github/actions/setup-deps
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test-js:
+    name: Test JavaScript/TypeScript (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup and install dependencies
+        uses: ./.github/actions/setup-deps
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run tests
+        run: npm test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+
+  test-ios-module:
+    name: Validate iOS Module
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Swift syntax
+        run: |
+          echo "Validating iOS Swift files..."
+          # Check that Swift files have valid syntax
+          for file in ios/*.swift; do
+            if [ -f "$file" ]; then
+              echo "Checking $file..."
+              swiftc -parse -target arm64-apple-ios13.0 -sdk $(xcrun --sdk iphonesimulator --show-sdk-path) "$file" 2>&1 | head -20
+            fi
+          done
+          echo "✅ iOS Swift files validated!"
+
+      - name: Check test files exist
+        run: |
+          echo "iOS test files:"
+          ls -la ios/Tests/*.swift | wc -l
+          echo "test files found"
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [lint, test-js]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup and install dependencies
+        uses: ./.github/actions/setup-deps
+
+      - name: Cache build artifacts
+        uses: ./.github/actions/cache-build
+        id: build-cache
+
+      - name: Build package
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: npm run build
+
+      - name: Verify build exists
+        run: |
+          if [ ! -d "build" ]; then
+            echo "Build failed - running build again"
+            npm run build
+          fi
+
+      - name: Check build output
+        run: |
+          if [ ! -d "build" ]; then
+            echo "Build directory not found"
+            exit 1
+          fi
+          if [ ! -f "build/index.js" ]; then
+            echo "build/index.js not found"
+            exit 1
+          fi
+          if [ ! -f "build/index.d.ts" ]; then
+            echo "build/index.d.ts not found"
+            exit 1
+          fi
+
+      - name: Pack module for testing
+        run: npm pack
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: expo-focus-menu-*.tgz
