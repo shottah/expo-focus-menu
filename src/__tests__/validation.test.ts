@@ -77,7 +77,7 @@ describe('Validation Utilities', () => {
 
         // Check that warning was logged
         expect(consoleSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Maximum nesting depth (1 level) reached')
+          expect.stringContaining('Maximum nesting depth (1 level) reached'),
         );
 
         consoleSpy.mockRestore();
@@ -123,7 +123,7 @@ describe('Validation Utilities', () => {
 
         // Check that warning was logged
         expect(consoleSpy).toHaveBeenCalledWith(
-          expect.stringContaining('Maximum nesting depth (1 level) reached')
+          expect.stringContaining('Maximum nesting depth (1 level) reached'),
         );
 
         consoleSpy.mockRestore();
@@ -208,7 +208,7 @@ describe('Validation Utilities', () => {
       const validated = validateMenuItems(items);
       expect(validated).toHaveLength(50); // Should be limited to 50
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Too many menu items')
+        expect.stringContaining('Too many menu items'),
       );
 
       consoleSpy.mockRestore();
@@ -253,7 +253,7 @@ describe('Validation Utilities', () => {
       const validated = validateReactions(reactions);
       expect(validated.length).toBeLessThanOrEqual(20);
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Too many reactions')
+        expect.stringContaining('Too many reactions'),
       );
 
       consoleSpy.mockRestore();

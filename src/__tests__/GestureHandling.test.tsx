@@ -9,7 +9,7 @@ describe('Gesture Handling with Focus Menu', () => {
 
   describe('Focus Menu Props Without TriggerMode', () => {
     it('should not have triggerMode in props interface', () => {
-      const props: ExpoFocusMenuViewProps = {
+      const _props: ExpoFocusMenuViewProps = {
         items: mockMenuItems,
         onItemPress: jest.fn(),
         children: null,
@@ -18,11 +18,11 @@ describe('Gesture Handling with Focus Menu', () => {
       };
 
       // TypeScript should catch this error in a real scenario
-      expect(props).toBeDefined();
+      expect(_props).toBeDefined();
     });
 
     it('should only support long press gesture', () => {
-      const props: ExpoFocusMenuViewProps = {
+      const _props: ExpoFocusMenuViewProps = {
         items: mockMenuItems,
         onItemPress: jest.fn(),
         children: null,
@@ -106,8 +106,12 @@ describe('Gesture Handling with Focus Menu', () => {
       };
 
       // Simulate menu lifecycle
-      if (props.onMenuShow) props.onMenuShow();
-      if (props.onMenuDismiss) props.onMenuDismiss();
+      if (props.onMenuShow) {
+        props.onMenuShow();
+      }
+      if (props.onMenuDismiss) {
+        props.onMenuDismiss();
+      }
 
       expect(onMenuShow).toHaveBeenCalled();
       expect(onMenuDismiss).toHaveBeenCalled();

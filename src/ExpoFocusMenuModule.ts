@@ -1,5 +1,4 @@
 import { NativeModule as ExpoNativeModule, requireNativeModule } from 'expo';
-import { Platform } from 'react-native';
 
 import {
   ExpoFocusMenuModuleEvents,
