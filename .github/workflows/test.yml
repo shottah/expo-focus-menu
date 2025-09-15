@@ -2,7 +2,7 @@ name: Test
 
 on:
   push:
-    branches: [main, development]
+    branches-ignore: [main, development]  # Run on all branches except main and development
   pull_request:
     branches: [main, development]
   workflow_call:  # Allow this workflow to be called by other workflows

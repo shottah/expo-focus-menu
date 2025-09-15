@@ -35,7 +35,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
 
     // Properties from JS
     var menuItems: List<Map<String, Any>> = emptyList()
-    var triggerMode: String = "longPress"
+    // Removed triggerMode - always use long press like iOS
     var hapticFeedback: Boolean = false
     var reactions: List<String> = emptyList()
         set(value) {
@@ -62,37 +62,26 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
             createContextMenu(menu)
         }
 
-        // Set up click/long click based on trigger mode
-        updateTriggerMode()
-    }
-
-    fun updateTriggerMode() {
-        when (triggerMode) {
-            "tap" -> {
-                setOnClickListener {
-                    if (hapticFeedback) provideHapticFeedback()
-                    showContextMenu()
-                    if (reactions.isNotEmpty()) showEmojiPicker()
-                }
-                setOnLongClickListener(null)
+        // Only long press triggers the menu (like iOS)
+        setOnLongClickListener {
+            if (hapticFeedback) provideHapticFeedback()
+            showContextMenu()
+            // Show emoji picker if reactions are provided
+            if (reactions.isNotEmpty()) {
+                showEmojiPicker()
             }
-            else -> { // "longPress"
-                setOnClickListener(null)
-                setOnLongClickListener {
-                    if (hapticFeedback) provideHapticFeedback()
-                    showContextMenu()
-                    if (reactions.isNotEmpty()) showEmojiPicker()
-                    true
-                }
-            }
+            true
         }
     }
+
+    // Removed updateTriggerMode - always use long press
 
     private fun createContextMenu(menu: ContextMenu) {
         menu.clear()
         menuItemIdMap.clear()
         menuItemCounter = 1
 
+        // Add menu items with support for single-level nesting
         for (item in menuItems) {
             val id = item["id"] as? String ?: continue
             val title = item["title"] as? String ?: continue
@@ -100,19 +89,46 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
             val disabled = item["disabled"] as? Boolean ?: false
             val destructive = item["destructive"] as? Boolean ?: false
             val icon = item["icon"] as? String
+            val children = item["children"] as? List<Map<String, Any>>
 
-            val menuItem = menu.add(0, menuItemCounter, 0, title)
-            menuItemIdMap[menuItemCounter] = id
-            menuItemCounter++
+            // Combine title and subtitle if present
+            val displayTitle = if (subtitle != null) {
+                "$title\n$subtitle"
+            } else {
+                title
+            }
 
-            // Set enabled state
-            menuItem.isEnabled = !disabled
+            if (!children.isNullOrEmpty()) {
+                // Create submenu for nested items (only 1 level deep like iOS)
+                val subMenu = menu.addSubMenu(0, Menu.NONE, menuItemCounter, title)
+                menuItemCounter++
 
-            // Add icon if available
-            if (icon != null) {
-                val iconResource = getIconResource(icon)
-                if (iconResource != 0) {
-                    menuItem.setIcon(iconResource)
+                // Add children to submenu
+                for (child in children) {
+                    val childId = child["id"] as? String ?: continue
+                    val childTitle = child["title"] as? String ?: continue
+                    val childDisabled = child["disabled"] as? Boolean ?: false
+
+                    val childMenuItem = subMenu.add(0, menuItemCounter, 0, childTitle)
+                    menuItemIdMap[menuItemCounter] = childId
+                    menuItemCounter++
+                    childMenuItem.isEnabled = !childDisabled
+                }
+            } else {
+                // Regular menu item
+                val menuItem = menu.add(0, menuItemCounter, 0, displayTitle)
+                menuItemIdMap[menuItemCounter] = id
+                menuItemCounter++
+
+                // Set enabled state
+                menuItem.isEnabled = !disabled
+
+                // Add icon if available
+                if (icon != null) {
+                    val iconResource = getIconResource(icon)
+                    if (iconResource != 0) {
+                        menuItem.setIcon(iconResource)
+                    }
                 }
             }
         }
@@ -160,7 +176,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
 
             val adapter = EmojiPickerAdapter(
-                emojis = reactions.ifEmpty { DEFAULT_EMOJIS },
+                emojis = reactions,  // Use only the reactions provided from React Native
                 selectedEmoji = selectedEmoji,
                 onEmojiClick = { emoji ->
                     handleEmojiSelection(emoji)

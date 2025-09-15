@@ -53,10 +53,7 @@ class ExpoFocusMenuModule : Module() {
         view.menuItems = items
       }
 
-      Prop("triggerMode") { view, mode: String ->
-        view.triggerMode = mode
-        view.updateTriggerMode()
-      }
+      // Removed triggerMode - always use long press like iOS
 
       Prop("hapticFeedback") { view, enabled: Boolean ->
         view.hapticFeedback = enabled
@@ -163,7 +160,7 @@ class ExpoFocusMenuModule : Module() {
       }
 
       if (children != null && children.isNotEmpty()) {
-        // Create submenu
+        // Create submenu (limited to 1 level deep like iOS)
         val subMenu = menu.addSubMenu(displayTitle)
 
         // Add icon if available (only works on some Android versions)
@@ -174,8 +171,33 @@ class ExpoFocusMenuModule : Module() {
           }
         }
 
-        // Recursively add children to submenu
-        currentId = addItemsToMenu(subMenu, children, menuItemIdMap, currentId)
+        // Add children to submenu (no further nesting allowed)
+        for (child in children) {
+          val childId = child["id"] as? String ?: continue
+          val childTitle = child["title"] as? String ?: continue
+          val childSubtitle = child["subtitle"] as? String
+          val childDisabled = child["disabled"] as? Boolean ?: false
+
+          val childDisplayTitle = if (childSubtitle != null) {
+            "$childTitle\n$childSubtitle"
+          } else {
+            childTitle
+          }
+
+          val childMenuItem = subMenu.add(Menu.NONE, currentId, Menu.NONE, childDisplayTitle)
+          menuItemIdMap[currentId] = childId
+          currentId++
+          childMenuItem.isEnabled = !childDisabled
+
+          // Add icon for child if available
+          val childIcon = child["icon"] as? String
+          if (childIcon != null) {
+            val childIconResource = getIconResource(childIcon)
+            if (childIconResource != 0) {
+              childMenuItem.setIcon(childIconResource)
+            }
+          }
+        }
       } else {
         // Create regular menu item
         val menuItem = menu.add(Menu.NONE, currentId, Menu.NONE, displayTitle)
