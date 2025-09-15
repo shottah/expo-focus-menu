@@ -2,7 +2,7 @@
   "branches": [
     {
       "name": "development",
-      "prerelease": false
+      "prerelease": "rc"
     }
   ],
   "plugins": [
@@ -11,7 +11,7 @@
       {
         "preset": "conventionalcommits",
         "releaseRules": [
-          { "type": "feat", "release": "minor" },
+          { "type": "feat", "release": "patch" },
           { "type": "fix", "release": "patch" },
           { "type": "perf", "release": "patch" },
           { "type": "revert", "release": "patch" },
@@ -22,7 +22,7 @@
           { "type": "test", "release": false },
           { "type": "build", "release": false },
           { "type": "ci", "release": false },
-          { "breaking": true, "release": "major" },
+          { "breaking": true, "release": "minor" },
           { "revert": true, "release": "patch" }
         ]
       }
@@ -51,7 +51,8 @@
     [
       "@semantic-release/npm",
       {
-        "npmPublish": true
+        "npmPublish": true,
+        "pkgRoot": "."
       }
     ],
     [
