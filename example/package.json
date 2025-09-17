@@ -10,9 +10,10 @@
   },
   "dependencies": {
     "expo": "~54.0.6",
+    "expo-assistant": "file:../../expo-assistant",
+    "expo-focus-menu": "file:..",
     "react": "19.1.0",
-    "react-native": "0.81.4",
-    "expo-focus-menu": "file:.."
+    "react-native": "0.81.4"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
