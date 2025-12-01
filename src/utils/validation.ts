@@ -2,6 +2,7 @@
  * Security validation utilities for expo-focus-menu
  */
 
+import { isValidElement } from 'react';
 import { FocusMenuItem } from '../ExpoFocusMenu.types';
 
 // Security limits
@@ -62,14 +63,10 @@ function validateMenuItem(item: unknown, depth: number): FocusMenuItem | null {
   }
 
   if (menuItem.icon !== undefined) {
-    sanitized.icon = sanitizeString(menuItem.icon, 50); // Limit icon names
-  }
-
-  if (menuItem.image !== undefined) {
-    // Validate image URL or base64
-    const imageStr = String(menuItem.image);
-    if (imageStr.startsWith('data:') || imageStr.startsWith('http')) {
-      sanitized.image = imageStr.slice(0, 5000); // Limit image data size
+    if (isValidElement(menuItem.icon)) {
+      sanitized.icon = menuItem.icon;
+    } else if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[ExpoFocusMenu] Invalid icon for item "${sanitized.id}": expected React element`);
     }
   }
 

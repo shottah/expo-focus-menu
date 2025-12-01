@@ -9,8 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.1.0",
     "expo": "~54.0.6",
-    "expo-assistant": "file:../../expo-assistant",
     "expo-focus-menu": "file:..",
     "react": "19.1.0",
     "react-native": "0.81.4"

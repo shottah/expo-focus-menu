@@ -44,6 +44,9 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
   private var menuPreviewFrame: CGRect? // Store the actual menu preview frame
   private var menuAppearedAbove: Bool = false // Track actual menu position
 
+  // Cache for snapshotted icon images
+  private var iconImageCache: [String: UIImage] = [:]
+
   required init(appContext: AppContext? = nil) {
     super.init(appContext: appContext)
     setupView()
@@ -68,6 +71,74 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
 
   // Removed handleTap - only long press triggers the menu
 
+  // MARK: - Icon Snapshotting
+
+  /// Recursively finds a subview by its React Native tag
+  private func findViewByTag(_ tag: Int, in view: UIView? = nil) -> UIView? {
+    let searchView = view ?? self
+
+    // Check if this view has the tag we're looking for
+    // React Native stores tags in the view's tag property or reactTag
+    if searchView.tag == tag {
+      return searchView
+    }
+
+    // Check for React Native's reactTag property via key-value coding
+    if let reactTag = searchView.value(forKey: "reactTag") as? NSNumber,
+       reactTag.intValue == tag {
+      return searchView
+    }
+
+    // Recursively search subviews
+    for subview in searchView.subviews {
+      if let found = findViewByTag(tag, in: subview) {
+        return found
+      }
+    }
+
+    return nil
+  }
+
+  /// Snapshots a view to a UIImage
+  private func snapshotView(_ view: UIView) -> UIImage? {
+    guard view.bounds.size.width > 0 && view.bounds.size.height > 0 else {
+      return nil
+    }
+
+    let renderer = UIGraphicsImageRenderer(bounds: view.bounds)
+    let image = renderer.image { _ in
+      view.drawHierarchy(in: view.bounds, afterScreenUpdates: true)
+    }
+
+    return image
+  }
+
+  /// Prepares icon snapshots for all menu items with iconViewTag
+  private func prepareIconSnapshots() {
+    iconImageCache.removeAll()
+
+    func processItems(_ items: [[String: Any]]) {
+      for item in items {
+        guard let itemId = item["id"] as? String,
+              let viewTag = item["iconViewTag"] as? Int else { continue }
+
+        if let iconView = findViewByTag(viewTag),
+           let image = snapshotView(iconView) {
+          iconImageCache[itemId] = image
+        } else if ProcessInfo.processInfo.environment["DEBUG"] != nil {
+          NSLog("[ExpoFocusMenu] Warning: Could not snapshot icon for item '\(itemId)'")
+        }
+
+        // Process children if present
+        if let children = item["children"] as? [[String: Any]] {
+          processItems(children)
+        }
+      }
+    }
+
+    processItems(menuItems)
+  }
+
   // MARK: - UIContextMenuInteractionDelegate
 
   @available(iOS 13.0, *)
@@ -78,6 +149,9 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
       generator.prepare()
       generator.impactOccurred()
     }
+
+    // Prepare icon snapshots before creating the menu
+    prepareIconSnapshots()
 
     return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
       return self?.createMenu()
@@ -226,8 +300,6 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
       let subtitle = item["subtitle"] as? String
       let destructive = item["destructive"] as? Bool ?? false
       let disabled = item["disabled"] as? Bool ?? false
-      let iconName = item["icon"] as? String
-      let imageString = item["image"] as? String
 
       // Check if this item has children (submenu)
       if let children = item["children"] as? [[String: Any]], !children.isEmpty {
@@ -236,7 +308,9 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
         for child in children {
           if let childId = child["id"] as? String,
              let childTitle = child["title"] as? String {
-            let childAction = UIAction(title: childTitle) { [weak self] _ in
+            // Get cached icon for child item
+            let childImage = iconImageCache[childId]
+            let childAction = UIAction(title: childTitle, image: childImage) { [weak self] _ in
               self?.onItemPress(["itemId": childId])
             }
             submenuActions.append(childAction)
@@ -257,26 +331,8 @@ class ExpoFocusMenuView: ExpoView, UIContextMenuInteractionDelegate {
         // Create the action with title and optional subtitle
         let action: UIAction
 
-        // Handle image loading
-        var image: UIImage? = nil
-        if let iconName = iconName {
-          image = UIImage(systemName: iconName)
-        } else if let imageString = imageString {
-          // Try to load custom image (base64 or URL)
-          if imageString.hasPrefix("data:image") {
-            // Base64 image
-            if let commaIndex = imageString.firstIndex(of: ",") {
-              let base64String = String(imageString[imageString.index(after: commaIndex)...])
-              if let imageData = Data(base64Encoded: base64String) {
-                image = UIImage(data: imageData)
-              }
-            }
-          } else if let url = URL(string: imageString) {
-            // URL image - for now we'll skip async loading
-            // In production, you'd want to cache these
-            image = nil
-          }
-        }
+        // Get cached icon image from snapshotted React component
+        let image = iconImageCache[itemId]
 
         if let subtitle = subtitle {
           // iOS 15+ supports subtitles

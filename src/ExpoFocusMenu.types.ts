@@ -14,11 +14,8 @@ export interface FocusMenuItem {
   /** Optional subtitle for the menu item */
   subtitle?: string;
 
-  /** Optional icon name (system icon on iOS, drawable resource on Android) */
-  icon?: string;
-
-  /** Optional custom image URL or base64 string for the menu item */
-  image?: string;
+  /** Optional icon as a React component (e.g., from @expo/vector-icons or custom SVG) */
+  icon?: ReactNode;
 
   /** Whether this item should be styled as destructive (typically red on iOS) */
   destructive?: boolean;
@@ -32,6 +29,21 @@ export interface FocusMenuItem {
    * Children cannot have their own children - any deeper nesting will be ignored.
    */
   children?: FocusMenuItem[];
+}
+
+/**
+ * Internal representation of menu items passed to native code.
+ * Icons are converted to view tags that native code uses to find and snapshot the rendered icon views.
+ */
+export interface NativeFocusMenuItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  /** React Native view tag for the icon component (used by native code to snapshot the icon) */
+  iconViewTag?: number;
+  destructive?: boolean;
+  disabled?: boolean;
+  children?: NativeFocusMenuItem[];
 }
 
 /**

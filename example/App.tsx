@@ -8,7 +8,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ExpoFocusMenuView, FocusMenuItem } from 'expo-focus-menu';
+
+const ICON_SIZE = 20;
+const ICON_COLOR = '#333';
 
 export default function App() {
   const [lastAction, setLastAction] = useState<string>('No action yet');
@@ -26,26 +30,26 @@ export default function App() {
 
   // Basic menu items
   const basicMenuItems: FocusMenuItem[] = [
-    { id: 'copy', title: 'Copy', icon: 'doc.on.doc' },
-    { id: 'share', title: 'Share', icon: 'square.and.arrow.up' },
-    { id: 'edit', title: 'Edit', icon: 'pencil' },
-    { id: 'delete', title: 'Delete', icon: 'trash', destructive: true },
+    { id: 'copy', title: 'Copy', icon: <Ionicons name="copy-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
+    { id: 'share', title: 'Share', icon: <Ionicons name="share-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
+    { id: 'edit', title: 'Edit', icon: <Ionicons name="pencil-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
+    { id: 'delete', title: 'Delete', icon: <Ionicons name="trash-outline" size={ICON_SIZE} color="#FF3B30" />, destructive: true },
   ];
 
   // Nested menu items
   const nestedMenuItems: FocusMenuItem[] = [
-    { id: 'copy', title: 'Copy', icon: 'doc.on.doc' },
+    { id: 'copy', title: 'Copy', icon: <Ionicons name="copy-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
     {
       id: 'share',
       title: 'Share',
-      icon: 'square.and.arrow.up',
+      icon: <Ionicons name="share-outline" size={ICON_SIZE} color={ICON_COLOR} />,
       children: [
-        { id: 'twitter', title: 'Twitter', icon: 'at' },
-        { id: 'facebook', title: 'Facebook', icon: 'f.circle' },
-        { id: 'email', title: 'Email', icon: 'envelope' },
+        { id: 'twitter', title: 'Twitter', icon: <Ionicons name="logo-twitter" size={ICON_SIZE} color="#1DA1F2" /> },
+        { id: 'facebook', title: 'Facebook', icon: <Ionicons name="logo-facebook" size={ICON_SIZE} color="#4267B2" /> },
+        { id: 'email', title: 'Email', icon: <Ionicons name="mail-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
       ],
     },
-    { id: 'delete', title: 'Delete', icon: 'trash', destructive: true },
+    { id: 'delete', title: 'Delete', icon: <Ionicons name="trash-outline" size={ICON_SIZE} color="#FF3B30" />, destructive: true },
   ];
 
   return (
@@ -149,9 +153,9 @@ export default function App() {
           </Text>
           <ExpoFocusMenuView
             items={[
-              { id: 'duplicate', title: 'Duplicate Card', icon: 'doc.on.doc' },
-              { id: 'archive', title: 'Archive', icon: 'archivebox' },
-              { id: 'delete', title: 'Delete', icon: 'trash', destructive: true },
+              { id: 'duplicate', title: 'Duplicate Card', icon: <Ionicons name="duplicate-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
+              { id: 'archive', title: 'Archive', icon: <Ionicons name="archive-outline" size={ICON_SIZE} color={ICON_COLOR} /> },
+              { id: 'delete', title: 'Delete', icon: <Ionicons name="trash-outline" size={ICON_SIZE} color="#FF3B30" />, destructive: true },
             ]}
             onItemPress={handleMenuItemPress}
             hapticFeedback={true}

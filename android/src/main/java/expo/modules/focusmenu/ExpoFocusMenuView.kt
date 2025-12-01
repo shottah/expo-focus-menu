@@ -1,7 +1,10 @@
 package expo.modules.focusmenu
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.VibrationEffect
@@ -52,6 +55,9 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
     private var menuItemIdMap = mutableMapOf<Int, String>()
     private var menuItemCounter = 1
 
+    // Cache for snapshotted icon images
+    private val iconBitmapCache = mutableMapOf<String, Bitmap>()
+
     init {
         // Set up the view
         isClickable = true
@@ -65,6 +71,8 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
         // Only long press triggers the menu (like iOS)
         setOnLongClickListener {
             if (hapticFeedback) provideHapticFeedback()
+            // Prepare icon snapshots before showing the menu
+            prepareIconSnapshots()
             showContextMenu()
             // Show emoji picker if reactions are provided
             if (reactions.isNotEmpty()) {
@@ -75,6 +83,87 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
     }
 
     // Removed updateTriggerMode - always use long press
+
+    // MARK: - Icon Snapshotting
+
+    /**
+     * Recursively finds a subview by its React Native tag
+     */
+    private fun findViewByTag(tag: Int, view: View? = null): View? {
+        val searchView = view ?: this
+
+        // Check if this view has the tag we're looking for
+        if (searchView.id == tag) {
+            return searchView
+        }
+
+        // For React Native views, check the tag property
+        if (searchView.tag is Int && searchView.tag == tag) {
+            return searchView
+        }
+
+        // Recursively search in ViewGroup children
+        if (searchView is ViewGroup) {
+            for (i in 0 until searchView.childCount) {
+                val found = findViewByTag(tag, searchView.getChildAt(i))
+                if (found != null) {
+                    return found
+                }
+            }
+        }
+
+        return null
+    }
+
+    /**
+     * Snapshots a view to a Bitmap
+     */
+    private fun snapshotView(view: View): Bitmap? {
+        if (view.width <= 0 || view.height <= 0) {
+            return null
+        }
+
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        view.draw(canvas)
+
+        return bitmap
+    }
+
+    /**
+     * Prepares icon snapshots for all menu items with iconViewTag
+     */
+    private fun prepareIconSnapshots() {
+        iconBitmapCache.clear()
+
+        fun processItems(items: List<Map<String, Any>>) {
+            for (item in items) {
+                val itemId = item["id"] as? String ?: continue
+                val viewTag = (item["iconViewTag"] as? Number)?.toInt() ?: continue
+
+                val iconView = findViewByTag(viewTag)
+                if (iconView != null) {
+                    val bitmap = snapshotView(iconView)
+                    if (bitmap != null) {
+                        iconBitmapCache[itemId] = bitmap
+                    } else if (BuildConfig.DEBUG) {
+                        Log.w(TAG, "Could not snapshot icon for item '$itemId'")
+                    }
+                } else if (BuildConfig.DEBUG) {
+                    Log.w(TAG, "Could not find view by tag for icon '$itemId'")
+                }
+
+                // Process children if present
+                @Suppress("UNCHECKED_CAST")
+                val children = item["children"] as? List<Map<String, Any>>
+                if (children != null) {
+                    processItems(children)
+                }
+            }
+        }
+
+        processItems(menuItems)
+    }
 
     private fun createContextMenu(menu: ContextMenu) {
         menu.clear()
@@ -87,8 +176,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
             val title = item["title"] as? String ?: continue
             val subtitle = item["subtitle"] as? String
             val disabled = item["disabled"] as? Boolean ?: false
-            val destructive = item["destructive"] as? Boolean ?: false
-            val icon = item["icon"] as? String
+            @Suppress("UNCHECKED_CAST")
             val children = item["children"] as? List<Map<String, Any>>
 
             // Combine title and subtitle if present
@@ -100,7 +188,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
 
             if (!children.isNullOrEmpty()) {
                 // Create submenu for nested items (only 1 level deep like iOS)
-                val subMenu = menu.addSubMenu(0, Menu.NONE, menuItemCounter, title)
+                val subMenu = menu.addSubMenu(0, android.view.Menu.NONE, menuItemCounter, title)
                 menuItemCounter++
 
                 // Add children to submenu
@@ -113,6 +201,12 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
                     menuItemIdMap[menuItemCounter] = childId
                     menuItemCounter++
                     childMenuItem.isEnabled = !childDisabled
+
+                    // Add cached icon if available for child
+                    val childBitmap = iconBitmapCache[childId]
+                    if (childBitmap != null) {
+                        childMenuItem.icon = BitmapDrawable(resources, childBitmap)
+                    }
                 }
             } else {
                 // Regular menu item
@@ -123,12 +217,10 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
                 // Set enabled state
                 menuItem.isEnabled = !disabled
 
-                // Add icon if available
-                if (icon != null) {
-                    val iconResource = getIconResource(icon)
-                    if (iconResource != 0) {
-                        menuItem.setIcon(iconResource)
-                    }
+                // Add cached icon if available
+                val bitmap = iconBitmapCache[id]
+                if (bitmap != null) {
+                    menuItem.icon = BitmapDrawable(resources, bitmap)
                 }
             }
         }
@@ -257,25 +349,6 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
                 @Suppress("DEPRECATION")
                 it.vibrate(10)
             }
-        }
-    }
-
-    private fun getIconResource(iconName: String): Int {
-        return when (iconName) {
-            "doc.on.doc", "copy" -> android.R.drawable.ic_menu_crop
-            "doc.on.clipboard", "paste" -> android.R.drawable.ic_menu_edit
-            "trash", "delete" -> android.R.drawable.ic_menu_delete
-            "arrowshape.turn.up.left", "reply" -> android.R.drawable.ic_menu_revert
-            "arrowshape.turn.up.right", "forward" -> android.R.drawable.ic_menu_send
-            "share" -> android.R.drawable.ic_menu_share
-            "edit" -> android.R.drawable.ic_menu_edit
-            "search" -> android.R.drawable.ic_menu_search
-            "add", "plus" -> android.R.drawable.ic_menu_add
-            "close" -> android.R.drawable.ic_menu_close_clear_cancel
-            "info" -> android.R.drawable.ic_menu_info_details
-            "preferences", "settings" -> android.R.drawable.ic_menu_preferences
-            "help" -> android.R.drawable.ic_menu_help
-            else -> 0
         }
     }
 
