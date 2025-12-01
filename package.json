@@ -1,6 +1,6 @@
 {
   "name": "expo-focus-menu",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Native iOS context menus with haptic feedback, React component icons, and interactive emoji reactions for React Native. Provides an elegant focus menu UI component for Expo and React Native apps.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
