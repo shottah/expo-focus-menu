@@ -167,8 +167,11 @@ export default function ExpoFocusMenuView({
 
   // Handle emoji reaction press events from native
   const handleReactionPress = React.useCallback((event: any) => {
-    if (onReactionPress && event.nativeEvent?.emoji) {
-      onReactionPress(event.nativeEvent.emoji);
+    if (onReactionPress && event.nativeEvent) {
+      onReactionPress({
+        emoji: event.nativeEvent.emoji,
+        selected: event.nativeEvent.selected ?? true,
+      });
     }
   }, [onReactionPress]);
 
@@ -200,8 +203,8 @@ export default function ExpoFocusMenuView({
     );
   };
 
-  // Use native view on iOS, fallback to TouchableWithoutFeedback on other platforms
-  if (Platform.OS === 'ios') {
+  // Use native view on iOS and Android
+  if (Platform.OS === 'ios' || Platform.OS === 'android') {
     return (
       <NativeView
         style={style}
@@ -223,8 +226,7 @@ export default function ExpoFocusMenuView({
     );
   }
 
-  // Fallback for Android/Web - just render children
-  // TODO: Implement Android native view
+  // Fallback for Web - just render children
   return (
     <View style={style} testID={testID}>
       {children}

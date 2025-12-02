@@ -3,106 +3,116 @@ package expo.modules.focusmenu
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.GradientDrawable
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.util.Log
-import android.view.ContextMenu
-import android.view.Gravity
-import android.view.MenuItem
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.PopupWindow
-import android.widget.TextView
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import expo.modules.focusmenu.models.FocusMenuItem
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
 import expo.modules.kotlin.views.ExpoView
 
-class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(context, appContext) {
+/**
+ * A native view that wraps React Native children and provides a context menu on long press.
+ * Extends ExpoView which automatically handles React Native child rendering.
+ */
+class ExpoFocusMenuView(
+    context: Context,
+    appContext: AppContext
+) : ExpoView(context, appContext) {
+
     companion object {
         private const val TAG = "ExpoFocusMenuView"
     }
 
-    // Event dispatchers
-    private val onItemPress by EventDispatcher()
-    private val onMenuShow by EventDispatcher()
-    private val onMenuDismiss by EventDispatcher()
-    private val onReactionPress by EventDispatcher()
+    // State
+    private var menuItems: List<FocusMenuItem> = emptyList()
+    private var reactions: List<String>? = null
+    private var hapticFeedbackEnabled: Boolean = false
+    private var currentPopup: FocusMenuPopup? = null
+    private val iconBitmaps = mutableMapOf<String, Bitmap>()
 
-    // Properties from JS
-    var menuItems: List<Map<String, Any>> = emptyList()
-    // Removed triggerMode - always use long press like iOS
-    var hapticFeedback: Boolean = false
-    var reactions: List<String> = emptyList()
-        set(value) {
-            field = value
-            // Log.d(TAG, "Reactions updated: ${field.size} items")
-            emojiPickerAdapter?.updateEmojis(field)
+    // Raw items from JS (before bitmap association)
+    private var rawMenuItems: List<Map<String, Any>> = emptyList()
+
+    // Event dispatchers - connect to JS callbacks
+    val onItemPress by EventDispatcher()
+    val onReactionPress by EventDispatcher()
+    val onMenuShow by EventDispatcher()
+    val onMenuDismiss by EventDispatcher()
+
+    // Gesture detection for long press
+    private val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+        override fun onLongPress(e: MotionEvent) {
+            showFocusMenu()
         }
-
-    // Internal state
-    private var selectedEmoji: String? = null
-    private var emojiPickerWindow: PopupWindow? = null
-    private var emojiPickerAdapter: EmojiPickerAdapter? = null
-    private var contextMenuView: View? = null
-    private var menuItemIdMap = mutableMapOf<Int, String>()
-    private var menuItemCounter = 1
-
-    // Cache for snapshotted icon images
-    private val iconBitmapCache = mutableMapOf<String, Bitmap>()
-
-    init {
-        // Set up the view
-        isClickable = true
-        isFocusable = true
-
-        // Register for context menu
-        setOnCreateContextMenuListener { menu, _, _ ->
-            createContextMenu(menu)
-        }
-
-        // Only long press triggers the menu (like iOS)
-        setOnLongClickListener {
-            if (hapticFeedback) provideHapticFeedback()
-            // Prepare icon snapshots before showing the menu
-            prepareIconSnapshots()
-            showContextMenu()
-            // Show emoji picker if reactions are provided
-            if (reactions.isNotEmpty()) {
-                showEmojiPicker()
-            }
-            true
-        }
+    }).apply {
+        setIsLongpressEnabled(true)
     }
 
-    // Removed updateTriggerMode - always use long press
-
-    // MARK: - Icon Snapshotting
+    init {
+        // Enable touch handling on this ViewGroup
+        isClickable = true
+        isFocusable = true
+        isLongClickable = true
+    }
 
     /**
-     * Recursively finds a subview by its React Native tag
+     * Intercept touch events to detect long press on children.
+     * We intercept but don't consume, so children still receive touches.
+     */
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(ev)
+        // Return false to let children handle the touch
+        // The gesture detector will still fire onLongPress
+        return false
+    }
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        gestureDetector.onTouchEvent(event)
+        return super.onTouchEvent(event)
+    }
+
+    // --- Props from JS ---
+
+    fun setMenuItems(items: List<Map<String, Any?>>) {
+        rawMenuItems = items.filterIsInstance<Map<String, Any>>()
+        rebuildMenuItems()
+    }
+
+    fun setReactions(emojis: List<String>?) {
+        reactions = emojis?.takeIf { it.isNotEmpty() }
+    }
+
+    fun configureHapticFeedback(enabled: Boolean) {
+        hapticFeedbackEnabled = enabled
+    }
+
+    // --- Icon bitmap handling ---
+
+    /**
+     * Called when an icon bitmap is captured from the JS side.
+     * Associates the bitmap with the menu item ID.
+     */
+    fun setIconBitmap(itemId: String, bitmap: Bitmap) {
+        iconBitmaps[itemId] = bitmap
+        rebuildMenuItems()
+    }
+
+    /**
+     * Recursively finds a subview by its React Native tag.
      */
     private fun findViewByTag(tag: Int, view: View? = null): View? {
         val searchView = view ?: this
 
-        // Check if this view has the tag we're looking for
         if (searchView.id == tag) {
             return searchView
         }
 
-        // For React Native views, check the tag property
         if (searchView.tag is Int && searchView.tag == tag) {
             return searchView
         }
 
-        // Recursively search in ViewGroup children
         if (searchView is ViewGroup) {
             for (i in 0 until searchView.childCount) {
                 val found = findViewByTag(tag, searchView.getChildAt(i))
@@ -116,7 +126,7 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
     }
 
     /**
-     * Snapshots a view to a Bitmap
+     * Snapshots a view to a Bitmap.
      */
     private fun snapshotView(view: View): Bitmap? {
         if (view.width <= 0 || view.height <= 0) {
@@ -131,11 +141,9 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
     }
 
     /**
-     * Prepares icon snapshots for all menu items with iconViewTag
+     * Prepares icon snapshots for all menu items with iconViewTag.
      */
     private fun prepareIconSnapshots() {
-        iconBitmapCache.clear()
-
         fun processItems(items: List<Map<String, Any>>) {
             for (item in items) {
                 val itemId = item["id"] as? String ?: continue
@@ -145,15 +153,10 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
                 if (iconView != null) {
                     val bitmap = snapshotView(iconView)
                     if (bitmap != null) {
-                        iconBitmapCache[itemId] = bitmap
-                    } else if (BuildConfig.DEBUG) {
-                        Log.w(TAG, "Could not snapshot icon for item '$itemId'")
+                        iconBitmaps[itemId] = bitmap
                     }
-                } else if (BuildConfig.DEBUG) {
-                    Log.w(TAG, "Could not find view by tag for icon '$itemId'")
                 }
 
-                // Process children if present
                 @Suppress("UNCHECKED_CAST")
                 val children = item["children"] as? List<Map<String, Any>>
                 if (children != null) {
@@ -162,248 +165,78 @@ class ExpoFocusMenuView(context: Context, appContext: AppContext) : ExpoView(con
             }
         }
 
-        processItems(menuItems)
+        processItems(rawMenuItems)
+        rebuildMenuItems()
     }
 
-    private fun createContextMenu(menu: ContextMenu) {
-        menu.clear()
-        menuItemIdMap.clear()
-        menuItemCounter = 1
+    private fun parseMenuItem(map: Map<String, Any?>): FocusMenuItem {
+        val id = map["id"] as? String ?: ""
+        @Suppress("UNCHECKED_CAST")
+        val children = (map["children"] as? List<*>)
+            ?.filterIsInstance<Map<String, Any?>>()
+            ?.map { parseMenuItem(it) }
 
-        // Add menu items with support for single-level nesting
-        for (item in menuItems) {
-            val id = item["id"] as? String ?: continue
-            val title = item["title"] as? String ?: continue
-            val subtitle = item["subtitle"] as? String
-            val disabled = item["disabled"] as? Boolean ?: false
-            @Suppress("UNCHECKED_CAST")
-            val children = item["children"] as? List<Map<String, Any>>
+        return FocusMenuItem(
+            id = id,
+            title = map["title"] as? String ?: "",
+            subtitle = map["subtitle"] as? String,
+            iconBitmap = iconBitmaps[id],
+            destructive = map["destructive"] as? Boolean ?: false,
+            disabled = map["disabled"] as? Boolean ?: false,
+            children = children?.takeIf { it.isNotEmpty() }
+        )
+    }
 
-            // Combine title and subtitle if present
-            val displayTitle = if (subtitle != null) {
-                "$title\n$subtitle"
-            } else {
-                title
+    private fun rebuildMenuItems() {
+        menuItems = rawMenuItems.map { parseMenuItem(it) }
+    }
+
+    // --- Menu display ---
+
+    private fun showFocusMenu() {
+        if (rawMenuItems.isEmpty() && reactions.isNullOrEmpty()) return
+        if (currentPopup != null) return // Already showing
+
+        // Snapshot icons before showing menu
+        prepareIconSnapshots()
+
+        // Anchor to this view (which contains the RN children)
+        val anchorView: View = this
+
+        currentPopup = FocusMenuPopup(
+            context = context,
+            anchorView = anchorView,
+            items = menuItems,
+            reactions = reactions,
+            hapticFeedback = hapticFeedbackEnabled,
+            onItemPress = { itemId ->
+                onItemPress(mapOf("itemId" to itemId))
+            },
+            onReactionPress = { emoji, selected ->
+                onReactionPress(mapOf(
+                    "emoji" to emoji,
+                    "selected" to selected
+                ))
+            },
+            onMenuShow = {
+                onMenuShow(emptyMap<String, Any>())
+            },
+            onMenuDismiss = {
+                onMenuDismiss(emptyMap<String, Any>())
+                currentPopup = null
             }
+        )
 
-            if (!children.isNullOrEmpty()) {
-                // Create submenu for nested items (only 1 level deep like iOS)
-                val subMenu = menu.addSubMenu(0, android.view.Menu.NONE, menuItemCounter, title)
-                menuItemCounter++
-
-                // Add children to submenu
-                for (child in children) {
-                    val childId = child["id"] as? String ?: continue
-                    val childTitle = child["title"] as? String ?: continue
-                    val childDisabled = child["disabled"] as? Boolean ?: false
-
-                    val childMenuItem = subMenu.add(0, menuItemCounter, 0, childTitle)
-                    menuItemIdMap[menuItemCounter] = childId
-                    menuItemCounter++
-                    childMenuItem.isEnabled = !childDisabled
-
-                    // Add cached icon if available for child
-                    val childBitmap = iconBitmapCache[childId]
-                    if (childBitmap != null) {
-                        childMenuItem.icon = BitmapDrawable(resources, childBitmap)
-                    }
-                }
-            } else {
-                // Regular menu item
-                val menuItem = menu.add(0, menuItemCounter, 0, displayTitle)
-                menuItemIdMap[menuItemCounter] = id
-                menuItemCounter++
-
-                // Set enabled state
-                menuItem.isEnabled = !disabled
-
-                // Add cached icon if available
-                val bitmap = iconBitmapCache[id]
-                if (bitmap != null) {
-                    menuItem.icon = BitmapDrawable(resources, bitmap)
-                }
-            }
-        }
-
-        onMenuShow(emptyMap())
+        currentPopup?.show()
     }
 
-    override fun onContextItemSelected(item: MenuItem): Boolean {
-        val itemId = menuItemIdMap[item.itemId]
-        if (itemId != null) {
-            onItemPress(mapOf("itemId" to itemId))
-            return true
-        }
-        return super.onContextItemSelected(item)
+    fun dismissMenu() {
+        currentPopup?.dismiss()
+        currentPopup = null
     }
 
-    override fun onContextMenuClosed(menu: ContextMenu) {
-        super.onContextMenuClosed(menu)
-        onMenuDismiss(emptyMap())
-        hideEmojiPicker()
-    }
-
-    private fun showEmojiPicker() {
-        if (emojiPickerWindow?.isShowing == true) return
-
-        val context = context ?: return
-
-        // Create emoji picker view
-        val pickerView = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            setPadding(24, 16, 24, 16)
-
-            // Apply default dark background style
-            val backgroundDrawable = GradientDrawable().apply {
-                setColor(Color.parseColor("#333333"))
-                cornerRadius = 56f * resources.displayMetrics.density
-            }
-            background = backgroundDrawable
-            alpha = 0.95f
-        }
-
-        // Create RecyclerView for emojis
-        val recyclerView = RecyclerView(context).apply {
-            layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-
-            val adapter = EmojiPickerAdapter(
-                emojis = reactions,  // Use only the reactions provided from React Native
-                selectedEmoji = selectedEmoji,
-                onEmojiClick = { emoji ->
-                    handleEmojiSelection(emoji)
-                }
-            )
-            this@ExpoFocusMenuView.emojiPickerAdapter = adapter
-            this.adapter = adapter
-        }
-
-        pickerView.addView(recyclerView, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        ))
-
-        // Create popup window
-        emojiPickerWindow = PopupWindow(pickerView).apply {
-            width = ViewGroup.LayoutParams.WRAP_CONTENT
-            height = ViewGroup.LayoutParams.WRAP_CONTENT
-            isFocusable = false
-            isOutsideTouchable = false
-            elevation = 8f
-        }
-
-        // Show above or below the view
-        val location = IntArray(2)
-        getLocationOnScreen(location)
-        val screenHeight = resources.displayMetrics.heightPixels
-        val spaceBelow = screenHeight - (location[1] + height)
-
-        if (spaceBelow > 200) {
-            // Show below
-            emojiPickerWindow?.showAtLocation(
-                this,
-                Gravity.NO_GRAVITY,
-                location[0],
-                location[1] + height + 20
-            )
-        } else {
-            // Show above
-            emojiPickerWindow?.showAtLocation(
-                this,
-                Gravity.NO_GRAVITY,
-                location[0],
-                location[1] - 120
-            )
-        }
-    }
-
-    private fun hideEmojiPicker() {
-        emojiPickerWindow?.dismiss()
-        emojiPickerWindow = null
-    }
-
-    private fun handleEmojiSelection(emoji: String) {
-        if (selectedEmoji == emoji) {
-            // Deselect
-            selectedEmoji = null
-            onReactionPress(mapOf("emoji" to "", "selected" to false))
-        } else {
-            // Select
-            selectedEmoji = emoji
-            onReactionPress(mapOf("emoji" to emoji, "selected" to true))
-        }
-
-        // Update adapter
-        emojiPickerAdapter?.selectedEmoji = selectedEmoji
-        emojiPickerAdapter?.notifyDataSetChanged()
-
-        // Keep picker visible (don't hide)
-    }
-
-    private fun provideHapticFeedback() {
-        val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        vibrator?.let {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                it.vibrate(VibrationEffect.createOneShot(10, VibrationEffect.DEFAULT_AMPLITUDE))
-            } else {
-                @Suppress("DEPRECATION")
-                it.vibrate(10)
-            }
-        }
-    }
-
-}
-
-// Adapter for emoji picker
-private class EmojiPickerAdapter(
-    private var emojis: List<String>,
-    var selectedEmoji: String?,
-    private val onEmojiClick: (String) -> Unit
-) : RecyclerView.Adapter<EmojiPickerAdapter.EmojiViewHolder>() {
-
-    fun updateEmojis(newEmojis: List<String>) {
-        emojis = newEmojis
-        notifyDataSetChanged()
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): EmojiViewHolder {
-        val textView = TextView(parent.context).apply {
-            textSize = 24f
-            gravity = Gravity.CENTER
-            setPadding(16, 8, 16, 8)
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
-        return EmojiViewHolder(textView)
-    }
-
-    override fun onBindViewHolder(holder: EmojiViewHolder, position: Int) {
-        val emoji = emojis[position]
-        holder.bind(emoji, emoji == selectedEmoji)
-        holder.itemView.setOnClickListener { onEmojiClick(emoji) }
-    }
-
-    override fun getItemCount() = emojis.size
-
-    class EmojiViewHolder(private val textView: TextView) : RecyclerView.ViewHolder(textView) {
-        fun bind(emoji: String, isSelected: Boolean) {
-            textView.text = emoji
-
-            if (isSelected) {
-                val backgroundDrawable = GradientDrawable().apply {
-                    setColor(Color.parseColor("#FFFFFF"))
-                    cornerRadius = 15f * textView.resources.displayMetrics.density
-                }
-                textView.background = backgroundDrawable
-                textView.scaleX = 1.1f
-                textView.scaleY = 1.1f
-            } else {
-                textView.background = null
-                textView.scaleX = 1.0f
-                textView.scaleY = 1.0f
-            }
-        }
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        dismissMenu()
     }
 }

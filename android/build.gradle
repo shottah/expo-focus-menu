@@ -41,3 +41,7 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+  // No third-party dependencies - uses only native Android APIs
+}
